@@ -10,28 +10,35 @@ public:
 	~Graph2D();
 	void setFunction(std::function<double(double)> fct);
 	
-	//void set_xMin(double xMin);
-	//void set_xMax(double xMax);
-	//void set_yMin(double yMin);
-	//void set_yMax(double yMax);
-	//double get_xMin();
-	//double get_xMax();
-	//double get_yMin();
-	//double get_yMax();
+	void setXMin(double xMin);
+	void setXMax(double xMax);
+	void setYMin(double yMin);
+	void setYMax(double yMax);
+	void setPosition(sf::Vector2f position);
+	void setSize(sf::Vector2f size);
+
+	double getXMin();
+	double getXMax();
+	double getYMin();
+	double getYMax();
+	sf::Vector2f getPosition();
+	sf::Vector2f getSize();
+
+	sf::Vector2f parametricToPixel(sf::Vector2f x);
+	sf::Vector2f pixelToParametric(sf::Vector2f x);
 private:
+
+	double m_thickness;
 	double m_xMin;
 	double m_xMax;
 	double m_yMin;
 	double m_yMax;
 
-	double m_xSizePixel;
-	double m_ySizePixel;
-	double m_thickness;
+	sf::Vector2f m_position;
+	sf::Vector2f m_size;
 	
 	std::function<double(double)> m_fct;
 
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
-
-	sf::Vector2f parametricToPixel(sf::Vector2f x);
 };
 

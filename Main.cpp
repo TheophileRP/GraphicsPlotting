@@ -12,11 +12,18 @@ double SinusDeMesCouilles(double x);
 
 int main()
 {
-    RenderWindow window(VideoMode(200, 200), "SFML works!");
+    RenderWindow window(VideoMode(1000, 800), "SFML works!");
 
     Graph2D sinx;
+    sinx.setPosition(Vector2f(50., 50.));
+    sinx.setSize(Vector2f(900., 700.));
+
 
     sinx.setFunction(&SinusDeMesCouilles);
+
+    window.draw(sinx);
+
+    window.display();
 
     while (window.isOpen())
     {
@@ -27,11 +34,9 @@ int main()
                 window.close();
         }
 
-        window.clear();
+ /*       window.clear();*/
 
-        window.draw(sinx);
 
-        window.display();
     }
 
     return 0;
