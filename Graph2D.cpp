@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#define M_PIOVER2 1.57079632679
+
 Graph2D::Graph2D()
 {
 	m_xMin = 0;
@@ -10,6 +12,7 @@ Graph2D::Graph2D()
 	m_yMax = -1;
 	m_position = sf::Vector2f(0., 0.);
 	m_size = sf::Vector2f(100., 100.);
+	m_thickness = 20;
 }
 
 Graph2D::~Graph2D()
@@ -89,17 +92,53 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 
 	double x_para = 0.;
 	double y_pixel = 0.;
+	double a = m_thickness / 2.;
+	double delta = 0;
+	double x_paraPlus1 = 0.;
+	double y_pixelPlus1 = 0.;
+	double x_n, y_n = 0.;
+
+	sf::VertexArray normal(sf::Lines, 2); //Store two points to draw the normals
+	sf::VertexArray anti_normal(sf::Lines, 2); //Store two points to draw the normals
 
 	for (int i = 0; i <= (m_size.x); i++) {
 
 		x_para = (i * (m_xMax - m_xMin) / m_size.x);
 		/*std::cout << x_para << std::endl;*/
 		y_pixel = (((m_fct(x_para) - m_yMin) * m_size.y) / (m_yMax - m_yMin));
-		std::cout << x_para << " " << m_fct(x_para) << std::endl;
+		//std::cout << x_para << " " << m_fct(x_para) << std::endl;
 
 		rect.setPosition(sf::Vector2f((i + m_position.x), (y_pixel + m_position.y)));
 
 		target.draw(rect);
+
+		//Get the deltaY over deltaX
+		x_paraPlus1 = ((i + 1) * (m_xMax - m_xMin) / m_size.x);
+		y_pixelPlus1 = (((m_fct(x_paraPlus1) - m_yMin) * m_size.y) / (m_yMax - m_yMin));
+		delta = (y_pixelPlus1 - y_pixel);
+
+		x_n = a * (cos(atan(delta) + M_PIOVER2));
+		y_n = a * (sin(atan(delta) + M_PIOVER2));
+
+		// Draw the normals
+		normal[0].position = sf::Vector2f(i + m_position.x, y_pixel + m_position.y);
+		normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + m_position.y + y_n);
+		normal[0].color = sf::Color::Red;
+		normal[1].color = sf::Color::Red;
+
+		target.draw(normal);
+
+		x_n = a * (cos(atan(delta) - M_PIOVER2));
+		y_n = a * (sin(atan(delta) - M_PIOVER2));
+
+		// Draw the normals
+		anti_normal[0].position = sf::Vector2f(i + m_position.x, y_pixel + m_position.y);
+		anti_normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + m_position.y + y_n);
+		anti_normal[0].color = sf::Color::Green;
+		anti_normal[1].color = sf::Color::Green;
+
+		target.draw(anti_normal);
+
 	}
 }
 

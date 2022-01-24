@@ -12,7 +12,10 @@ double SinusDeMesCouilles(double x);
 
 int main()
 {
-    RenderWindow window(VideoMode(1000, 800), "SFML works!");
+    ContextSettings settings;
+    settings.antialiasingLevel = 10;
+
+    RenderWindow window(VideoMode(1000, 800), "SFML works!", Style::Default, settings);
 
     Graph2D sinx;
     sinx.setPosition(Vector2f(50., 50.));
