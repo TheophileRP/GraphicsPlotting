@@ -23,9 +23,6 @@ public:
 	double getYMax();
 	sf::Vector2f getPosition();
 	sf::Vector2f getSize();
-
-	sf::Vector2f parametricToPixel(sf::Vector2f x);
-	sf::Vector2f pixelToParametric(sf::Vector2f x);
 private:
 
 	double m_thickness;
@@ -40,5 +37,9 @@ private:
 	std::function<double(double)> m_fct;
 
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
+
+	double derivative(double x, double h) const;
+	double boundsFunction(double x) const;
+	double pixelFunction(double x_pixel) const;
 };
 

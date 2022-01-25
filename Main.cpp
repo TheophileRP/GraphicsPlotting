@@ -6,6 +6,8 @@
 
 #include "Graph2D.h"
 
+#define M_PI 3.14159265359
+
 using namespace sf;
 
 double SinusDeMesCouilles(double x);
@@ -17,10 +19,19 @@ int main()
 
     RenderWindow window(VideoMode(1000, 800), "SFML works!", Style::Default, settings);
 
+    RectangleShape cadre;
+    cadre.setPosition(Vector2f(50., 50.));
+    cadre.setSize(Vector2f(900., 700.));
+    cadre.setOutlineThickness(3.);
+    cadre.setOutlineColor(Color::Green);
+    cadre.setFillColor(Color::Transparent);
+
+    window.draw(cadre);
+
+
     Graph2D sinx;
     sinx.setPosition(Vector2f(50., 50.));
     sinx.setSize(Vector2f(900., 700.));
-
 
     sinx.setFunction(&SinusDeMesCouilles);
 
@@ -46,5 +57,5 @@ int main()
 }
 
 double SinusDeMesCouilles(double x) {
-    return sin(x);
+    return sin(M_PI * 2 * x);
 }

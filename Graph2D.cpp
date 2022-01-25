@@ -6,13 +6,13 @@
 
 Graph2D::Graph2D()
 {
-	m_xMin = 0;
-	m_xMax = 6.28;
-	m_yMin = 1;
-	m_yMax = -1;
-	m_position = sf::Vector2f(0., 0.);
-	m_size = sf::Vector2f(100., 100.);
-	m_thickness = 20;
+	m_xMin = 0.;
+	m_xMax = 1.;
+	m_yMin = 0.;
+	m_yMax = 1.;
+	m_position = sf::Vector2f(50., 50.);
+	m_size = sf::Vector2f(900., 700.);
+	m_thickness = 100;
 }
 
 Graph2D::~Graph2D()
@@ -84,7 +84,7 @@ sf::Vector2f Graph2D::getSize()
 	return m_size;
 }
 
-void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const 
+void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
 	sf::RectangleShape rect;
 	rect.setSize(sf::Vector2f(1., 1.));
@@ -98,62 +98,81 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	double y_pixelPlus1 = 0.;
 	double x_n, y_n = 0.;
 
+	double radius = 0;
+
+	int interval = 10;
+	int j = 0;
+
 	sf::VertexArray normal(sf::Lines, 2); //Store two points to draw the normals
-	sf::VertexArray anti_normal(sf::Lines, 2); //Store two points to draw the normals
+	sf::VertexArray anti_normal(sf::Lines, 2); //Store two points to draw the anti-normals
 
 	for (int i = 0; i <= (m_size.x); i++) {
 
 		x_para = (i * (m_xMax - m_xMin) / m_size.x);
-		/*std::cout << x_para << std::endl;*/
 		y_pixel = (((m_fct(x_para) - m_yMin) * m_size.y) / (m_yMax - m_yMin));
-		//std::cout << x_para << " " << m_fct(x_para) << std::endl;
 
-		rect.setPosition(sf::Vector2f((i + m_position.x), (y_pixel + m_position.y)));
-
+		rect.setPosition(i + m_position.x, pixelFunction(i));
+		
+		// draw only if it's in the frame
+		if(rect.getPosition().y >= m_position.y && rect.getPosition().y < (m_position.y + m_size.y))
 		target.draw(rect);
 
-		//Get the deltaY over deltaX
-		x_paraPlus1 = ((i + 1) * (m_xMax - m_xMin) / m_size.x);
-		y_pixelPlus1 = (((m_fct(x_paraPlus1) - m_yMin) * m_size.y) / (m_yMax - m_yMin));
-		delta = (y_pixelPlus1 - y_pixel);
+		// Process the radius of the curvature circle
+		radius = pow(1 + pow(derivative(x_para, 0.001), 2), 2. / 3.) / derivative(derivative(x_para, 0.001), 0.001);
+		// scale to pixel
+		radius *= (m_size.x / (m_xMax - m_xMin));
 
-		x_n = a * (cos(atan(delta) + M_PIOVER2));
-		y_n = a * (sin(atan(delta) + M_PIOVER2));
+		if (j == interval) {
+			//Get the deltaY over deltaX
+			x_paraPlus1 = ((i + 1) * (m_xMax - m_xMin) / m_size.x);
+			y_pixelPlus1 = (((m_fct(x_paraPlus1) - m_yMin) * m_size.y) / (m_yMax - m_yMin));
+			delta = (y_pixelPlus1 - y_pixel);
 
-		// Draw the normals
-		normal[0].position = sf::Vector2f(i + m_position.x, y_pixel + m_position.y);
-		normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + m_position.y + y_n);
-		normal[0].color = sf::Color::Red;
-		normal[1].color = sf::Color::Red;
+			x_n = a * (cos(atan(delta) + M_PIOVER2));
+			y_n = a * (sin(atan(delta) + M_PIOVER2));
 
-		target.draw(normal);
+			// Draw the normals
+			normal[0].position = sf::Vector2f(i + m_position.x, y_pixel + m_position.y);
+			normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + m_position.y + y_n);
+			normal[0].color = sf::Color::Red;
+			normal[1].color = sf::Color::Red;
 
-		x_n = a * (cos(atan(delta) - M_PIOVER2));
-		y_n = a * (sin(atan(delta) - M_PIOVER2));
+			//if (radius > 0. && radius > a)
+				target.draw(normal);
 
-		// Draw the normals
-		anti_normal[0].position = sf::Vector2f(i + m_position.x, y_pixel + m_position.y);
-		anti_normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + m_position.y + y_n);
-		anti_normal[0].color = sf::Color::Green;
-		anti_normal[1].color = sf::Color::Green;
+			x_n = a * (cos(atan(delta) - M_PIOVER2));
+			y_n = a * (sin(atan(delta) - M_PIOVER2));
 
-		target.draw(anti_normal);
+			// Draw the normals
+			anti_normal[0].position = sf::Vector2f(i + m_position.x, y_pixel + m_position.y);
+			anti_normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + m_position.y + y_n);
+			anti_normal[0].color = sf::Color::Green;
+			anti_normal[1].color = sf::Color::Green;
 
+			//if(radius < 0. && radius > a)
+			target.draw(anti_normal);
+			
+			j = 0;
+		}
+		else{
+			j++;
+		}
 	}
 }
 
-sf::Vector2f Graph2D::parametricToPixel(sf::Vector2f x)
+double Graph2D::derivative(double x, double h) const
 {
-	sf::Vector2f result;
-	result.x = m_position.x + (x.x * m_size.x / (m_xMax - m_xMin));
-	result.y = m_position.y + (x.y * m_size.y / (m_yMax - m_yMin));
-	return result;
+	return (m_fct(x + h) - m_fct(x)) / h;
 }
 
-sf::Vector2f Graph2D::pixelToParametric(sf::Vector2f x)
+double Graph2D::boundsFunction(double x) const
 {
-	sf::Vector2f result;
-	result.x = (x.x * (m_xMax - m_xMin) / m_size.x) - m_position.x;
-	result.y = (x.y * (m_yMax - m_yMin) / m_size.y) - m_position.y;
-	return result;
+	// bounds function = 1 / Y_size * (f(x * X_size + X_offset) + Y_offset)
+	return (1. / (m_yMax - m_yMin) * (m_fct(x * (m_xMax - m_xMin) + m_xMin) - m_yMin));
+}
+
+double Graph2D::pixelFunction(double x_pixel) const
+{
+	// pixel function = (Y_size_pixel / Y_size_para) * f(x_pixel * X_size_para / X_size_pixel + X_offset_pixel) + Y_offset_pixel
+	return (m_size.y * (1. - (boundsFunction(x_pixel / m_size.x))) + m_position.y);
 }
