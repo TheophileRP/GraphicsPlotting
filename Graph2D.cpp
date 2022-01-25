@@ -3,12 +3,13 @@
 #include <iostream>
 
 #define M_PIOVER2 1.57079632679
+#define H 1.
 
 Graph2D::Graph2D()
 {
 	m_xMin = 0.;
-	m_xMax = 1.;
-	m_yMin = 0.;
+	m_xMax = 2.;
+	m_yMin = -1.;
 	m_yMax = 1.;
 	m_position = sf::Vector2f(50., 50.);
 	m_size = sf::Vector2f(900., 700.);
@@ -90,67 +91,77 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	rect.setSize(sf::Vector2f(1., 1.));
 	rect.setFillColor(sf::Color::White);
 
-	double x_para = 0.;
 	double y_pixel = 0.;
 	double a = m_thickness / 2.;
-	double delta = 0;
-	double x_paraPlus1 = 0.;
-	double y_pixelPlus1 = 0.;
+	double localDerivative = 0;
+	double secondDerivative = 0;
 	double x_n, y_n = 0.;
 
 	double radius = 0;
 
-	int interval = 10;
+	int interval = 15;
 	int j = 0;
 
-	sf::VertexArray normal(sf::Lines, 2); //Store two points to draw the normals
-	sf::VertexArray anti_normal(sf::Lines, 2); //Store two points to draw the anti-normals
+	sf::VertexArray normal(sf::Lines, 2); //Store two points to draw the normals & anti-normals
+	sf::CircleShape normalCircle(a, 50);
+	normalCircle.setFillColor(sf::Color::Transparent);
+	normalCircle.setOutlineThickness(1.);
+	normalCircle.setOutlineColor(sf::Color::White);
+	normalCircle.setOrigin(a, a);
 
 	for (int i = 0; i <= (m_size.x); i++) {
 
-		x_para = (i * (m_xMax - m_xMin) / m_size.x);
-		y_pixel = (((m_fct(x_para) - m_yMin) * m_size.y) / (m_yMax - m_yMin));
+		// Get the y value (in pixel) for current pixel
+		y_pixel = pixelFunction(i);
 
-		rect.setPosition(i + m_position.x, pixelFunction(i));
+		//Get the local derivative
+		localDerivative = derivative(i, H);
+
+		rect.setPosition(i + m_position.x, y_pixel);
 		
 		// draw only if it's in the frame
 		if(rect.getPosition().y >= m_position.y && rect.getPosition().y < (m_position.y + m_size.y))
 		target.draw(rect);
 
+		// Process the second derivative
+		secondDerivative = (derivative(i + H, H) - localDerivative) / H;
+
 		// Process the radius of the curvature circle
-		radius = pow(1 + pow(derivative(x_para, 0.001), 2), 2. / 3.) / derivative(derivative(x_para, 0.001), 0.001);
-		// scale to pixel
-		radius *= (m_size.x / (m_xMax - m_xMin));
+		radius = pow((1 + pow(localDerivative, 2)), (3./2.)) / secondDerivative;
+		std::cout << radius << std::endl;
 
 		if (j == interval) {
-			//Get the deltaY over deltaX
-			x_paraPlus1 = ((i + 1) * (m_xMax - m_xMin) / m_size.x);
-			y_pixelPlus1 = (((m_fct(x_paraPlus1) - m_yMin) * m_size.y) / (m_yMax - m_yMin));
-			delta = (y_pixelPlus1 - y_pixel);
 
-			x_n = a * (cos(atan(delta) + M_PIOVER2));
-			y_n = a * (sin(atan(delta) + M_PIOVER2));
+			// Process the x & y coordinates of the normal vector
+			x_n = a * (cos(atan(localDerivative) + M_PIOVER2));
+			y_n = a * (sin(atan(localDerivative) + M_PIOVER2));
 
 			// Draw the normals
-			normal[0].position = sf::Vector2f(i + m_position.x, y_pixel + m_position.y);
-			normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + m_position.y + y_n);
+			normal[0].position = sf::Vector2f(i + m_position.x, y_pixel);
+			normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + y_n);
 			normal[0].color = sf::Color::Red;
 			normal[1].color = sf::Color::Red;
 
-			//if (radius > 0. && radius > a)
-				target.draw(normal);
+			// Draw the normal circle
+			normalCircle.setPosition(i + m_position.x + x_n, y_pixel + y_n);
 
-			x_n = a * (cos(atan(delta) - M_PIOVER2));
-			y_n = a * (sin(atan(delta) - M_PIOVER2));
+			if ((radius > 0. && radius > a) || radius < 0.) {
+				target.draw(normalCircle);
+				target.draw(normal);
+			}
+
+			// Process the x & y coordinates of the anti-normal vector
+			x_n = a * (cos(atan(localDerivative) - M_PIOVER2));
+			y_n = a * (sin(atan(localDerivative) - M_PIOVER2));
 
 			// Draw the normals
-			anti_normal[0].position = sf::Vector2f(i + m_position.x, y_pixel + m_position.y);
-			anti_normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + m_position.y + y_n);
-			anti_normal[0].color = sf::Color::Green;
-			anti_normal[1].color = sf::Color::Green;
+			normal[0].position = sf::Vector2f(i + m_position.x, y_pixel);
+			normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + y_n);
+			normal[0].color = sf::Color::Green;
+			normal[1].color = sf::Color::Green;
 
 			//if(radius < 0. && radius > a)
-			target.draw(anti_normal);
+			target.draw(normal);
 			
 			j = 0;
 		}
@@ -162,7 +173,9 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 
 double Graph2D::derivative(double x, double h) const
 {
-	return (m_fct(x + h) - m_fct(x)) / h;
+	//std::cout << pixelFunction(x) << " " << pixelFunction(x + h) << std::endl;
+	return (pixelFunction(x + h) - pixelFunction(x)) / h;
+	//return (m_fct(x + h) - m_fct(x)) / h;
 }
 
 double Graph2D::boundsFunction(double x) const
