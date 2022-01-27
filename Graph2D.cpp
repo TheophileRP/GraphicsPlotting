@@ -7,10 +7,10 @@
 
 Graph2D::Graph2D()
 {
-	m_xMin = 0.;
+	m_xMin = -2.;
 	m_xMax = 2.;
 	m_yMin = -1.;
-	m_yMax = 1.;
+	m_yMax = 4.;
 	m_position = sf::Vector2f(50., 50.);
 	m_size = sf::Vector2f(900., 700.);
 	m_thickness = 100;
@@ -91,6 +91,8 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	rect.setSize(sf::Vector2f(1., 1.));
 	rect.setFillColor(sf::Color::White);
 
+	std::vector<sf::Vertex> graph;
+
 	double y_pixel = 0.;
 	double a = m_thickness / 2.;
 	double localDerivative = 0;
@@ -115,12 +117,78 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	normalCircle.setOutlineColor(sf::Color::White);
 	normalCircle.setOrigin(a, a);
 
-	// Debug circle equation
-	sf::RectangleShape circleEquationR;
-	circleEquationR.setSize(sf::Vector2f(2., 2.));
-	circleEquationR.setFillColor(sf::Color::Magenta);
+	//// Debug circle equation
+	//sf::RectangleShape circleEquationR;
+	//circleEquationR.setSize(sf::Vector2f(2., 2.));
 
 	for (int i = 0; i <= (m_size.x); i++) {
+
+		// Get the y value (in pixel) for current pixel
+		y_pixel = pixelFunction(i);
+
+		//Get the local derivative
+		localDerivative = derivative(i, H);
+
+		rect.setPosition(i + m_position.x, y_pixel);
+
+		// draw only if it's in the frame
+		if (rect.getPosition().y >= m_position.y && rect.getPosition().y < (m_position.y + m_size.y))
+			target.draw(rect);
+
+		// Process the second derivative
+		secondDerivative = (derivative(i + H, H) - localDerivative) / H;
+
+		// Process the radius of the curvature circle
+		radius = pow((1 + pow(localDerivative, 2)), (3. / 2.)) / secondDerivative;
+		//std::cout << radius << std::endl;
+
+		if (j == interval) {
+
+			// Process the x & y coordinates of the anti-normal vector
+			x_n = a * (cos(atan(localDerivative) - M_PIOVER2));
+			y_n = a * (sin(atan(localDerivative) - M_PIOVER2));
+
+			// Draw the normals
+			normal[0].position = sf::Vector2f(i + m_position.x, y_pixel);
+			normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + y_n);
+			normal[0].color = sf::Color::Green;
+			normal[1].color = sf::Color::Green;
+
+			// Collision between the normal circle and the curve (at the end of the for loop if 0 = no collision if 1 = collision)
+			circleCollision = 0;
+
+			for (int k = (-1.) * a; k <= a; k++) {
+				// Lower bound
+				circleEquation = sqrt(round((x_n * x_n + y_n * y_n) - pow(k, 2))) + (y_pixel + y_n);
+				collisionEquation = (int)(pixelFunction(i + k + x_n) - circleEquation);
+
+				if (collisionEquation < 0.) {
+					circleCollision = 1;
+				}
+
+				// Upper bound
+				circleEquation *= -1;
+				circleEquation += 2 * (y_pixel + y_n);
+
+				collisionEquation = (int)(pixelFunction(i + k + x_n) - circleEquation);
+
+				if (collisionEquation < 0.) {
+					circleCollision = 1;
+				}
+			}
+
+			if (!circleCollision) {
+				graph.push_back(sf::Vertex(normal[1].position));
+				//target.draw(normal);
+			}			
+			j = 0;
+		}
+		else{
+			j++;
+		}
+	}
+
+	for (int i = (m_size.x); i >= 0; i--) {
 
 		// Get the y value (in pixel) for current pixel
 		y_pixel = pixelFunction(i);
@@ -182,55 +250,17 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 			}
 
 			if (!circleCollision) {
-				target.draw(normal);
+				graph.push_back(sf::Vertex(normal[1].position));
+				//target.draw(normal);
 			}
 
-			// Process the x & y coordinates of the anti-normal vector
-			x_n = a * (cos(atan(localDerivative) - M_PIOVER2));
-			y_n = a * (sin(atan(localDerivative) - M_PIOVER2));
-
-			// Draw the normals
-			normal[0].position = sf::Vector2f(i + m_position.x, y_pixel);
-			normal[1].position = sf::Vector2f(i + m_position.x + x_n, y_pixel + y_n);
-			normal[0].color = sf::Color::Green;
-			normal[1].color = sf::Color::Green;
-
-			// Collision between the normal circle and the curve (at the end of the for loop if 0 = no collision if 1 = collision)
-			circleCollision = 0;
-
-			for (int k = (-1.) * a; k <= a; k++) {
-				// Lower bound
-				circleEquation = sqrt(round((x_n * x_n + y_n * y_n) - pow(k, 2))) + (y_pixel + y_n);
-				collisionEquation = (int)(pixelFunction(i + k + x_n) - circleEquation);
-
-				if (collisionEquation < 0.) {
-					circleCollision = 1;
-				}
-
-				// Upper bound
-				circleEquation *= -1;
-				circleEquation += 2 * (y_pixel + y_n);
-
-				collisionEquation = (int)(pixelFunction(i + k + x_n) - circleEquation);
-
-				if (collisionEquation < 0.) {
-					circleCollision = 1;
-				}
-			}
-
-			if (!circleCollision) {
-				target.draw(normal);
-			}
-			//else {
-			//	std::cout << i << std::endl;
-			//}
-			
 			j = 0;
 		}
-		else{
+		else {
 			j++;
 		}
 	}
+	target.draw(&graph[0], graph.size(), sf::LineStrip);
 }
 
 double Graph2D::derivative(double x, double h) const

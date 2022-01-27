@@ -58,5 +58,6 @@ int main()
 double SinusDeMesCouilles(double x) {
     //return x - 1.;
     //return 1. / 2. * x;
+    //return x * x;
     return sin(M_PI * 2 * x);
 }
