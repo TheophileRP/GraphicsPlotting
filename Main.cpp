@@ -32,7 +32,6 @@ int main()
     Graph2D sinx;
     sinx.setPosition(Vector2f(50., 50.));
     sinx.setSize(Vector2f(900., 700.));
-
     sinx.setFunction(&SinusDeMesCouilles);
 
     window.draw(sinx);
@@ -57,5 +56,7 @@ int main()
 }
 
 double SinusDeMesCouilles(double x) {
+    //return x - 1.;
+    //return 1. / 2. * x;
     return sin(M_PI * 2 * x);
 }

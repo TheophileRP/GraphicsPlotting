@@ -77,7 +77,7 @@ double Graph2D::getYMax()
 
 sf::Vector2f Graph2D::getPosition()
 {
-	return m_position;
+return m_position;
 }
 
 sf::Vector2f Graph2D::getSize()
@@ -97,17 +97,28 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	double secondDerivative = 0;
 	double x_n, y_n = 0.;
 
-	double radius = 0;
+	double circleEquation = 0.;
+	int circleSign = 0;
+	int circleCollision = 0;
+	int collisionEquation = 0.;
 
-	int interval = 15;
+	double radius = 0.;
+
+	int interval = 0;
 	int j = 0;
 
 	sf::VertexArray normal(sf::Lines, 2); //Store two points to draw the normals & anti-normals
+
 	sf::CircleShape normalCircle(a, 50);
 	normalCircle.setFillColor(sf::Color::Transparent);
 	normalCircle.setOutlineThickness(1.);
 	normalCircle.setOutlineColor(sf::Color::White);
 	normalCircle.setOrigin(a, a);
+
+	// Debug circle equation
+	sf::RectangleShape circleEquationR;
+	circleEquationR.setSize(sf::Vector2f(2., 2.));
+	circleEquationR.setFillColor(sf::Color::Magenta);
 
 	for (int i = 0; i <= (m_size.x); i++) {
 
@@ -118,17 +129,17 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 		localDerivative = derivative(i, H);
 
 		rect.setPosition(i + m_position.x, y_pixel);
-		
+
 		// draw only if it's in the frame
-		if(rect.getPosition().y >= m_position.y && rect.getPosition().y < (m_position.y + m_size.y))
-		target.draw(rect);
+		if (rect.getPosition().y >= m_position.y && rect.getPosition().y < (m_position.y + m_size.y))
+			target.draw(rect);
 
 		// Process the second derivative
 		secondDerivative = (derivative(i + H, H) - localDerivative) / H;
 
 		// Process the radius of the curvature circle
-		radius = pow((1 + pow(localDerivative, 2)), (3./2.)) / secondDerivative;
-		std::cout << radius << std::endl;
+		radius = pow((1 + pow(localDerivative, 2)), (3. / 2.)) / secondDerivative;
+		//std::cout << radius << std::endl;
 
 		if (j == interval) {
 
@@ -145,8 +156,32 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 			// Draw the normal circle
 			normalCircle.setPosition(i + m_position.x + x_n, y_pixel + y_n);
 
-			if ((radius > 0. && radius > a) || radius < 0.) {
-				target.draw(normalCircle);
+			//target.draw(normalCircle);
+
+			// Collision between the normal circle and the curve (at the end of the for loop if 0 = no collision if 1 = collision)
+			circleCollision = 0;
+
+			for (int k = (-1.) * a; k <= a; k++) {
+				// Lower bound
+				circleEquation = sqrt(round((x_n * x_n + y_n * y_n) - pow(k, 2))) + (y_pixel + y_n);
+				collisionEquation = (int)(pixelFunction(i + k + x_n) - circleEquation);
+
+				if (collisionEquation > 0.) {
+					circleCollision = 1;
+				}
+
+				// Upper bound
+				circleEquation *= -1;
+				circleEquation += 2 * (y_pixel + y_n);
+
+				collisionEquation = (int)(pixelFunction(i + k + x_n) - circleEquation);
+
+				if (collisionEquation > 0.) {
+					circleCollision = 1;
+				}
+			}
+
+			if (!circleCollision) {
 				target.draw(normal);
 			}
 
@@ -160,8 +195,35 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 			normal[0].color = sf::Color::Green;
 			normal[1].color = sf::Color::Green;
 
-			//if(radius < 0. && radius > a)
-			target.draw(normal);
+			// Collision between the normal circle and the curve (at the end of the for loop if 0 = no collision if 1 = collision)
+			circleCollision = 0;
+
+			for (int k = (-1.) * a; k <= a; k++) {
+				// Lower bound
+				circleEquation = sqrt(round((x_n * x_n + y_n * y_n) - pow(k, 2))) + (y_pixel + y_n);
+				collisionEquation = (int)(pixelFunction(i + k + x_n) - circleEquation);
+
+				if (collisionEquation < 0.) {
+					circleCollision = 1;
+				}
+
+				// Upper bound
+				circleEquation *= -1;
+				circleEquation += 2 * (y_pixel + y_n);
+
+				collisionEquation = (int)(pixelFunction(i + k + x_n) - circleEquation);
+
+				if (collisionEquation < 0.) {
+					circleCollision = 1;
+				}
+			}
+
+			if (!circleCollision) {
+				target.draw(normal);
+			}
+			//else {
+			//	std::cout << i << std::endl;
+			//}
 			
 			j = 0;
 		}
@@ -173,9 +235,8 @@ void Graph2D::draw(sf::RenderTarget& target, sf::RenderStates states) const
 
 double Graph2D::derivative(double x, double h) const
 {
-	//std::cout << pixelFunction(x) << " " << pixelFunction(x + h) << std::endl;
+	// we simulate the limit with the argument H
 	return (pixelFunction(x + h) - pixelFunction(x)) / h;
-	//return (m_fct(x + h) - m_fct(x)) / h;
 }
 
 double Graph2D::boundsFunction(double x) const
